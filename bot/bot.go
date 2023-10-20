@@ -46,13 +46,16 @@ func StartBot() {
 
 	// Initial check for updates
 	if tft.CheckForUpdate() {
-		dg.ChannelMessageSend(ChannelId, tft.GetPatchNotes())
+		if found := foundPreviousMessage(dg); !found {
+			sendUpdate(dg)
+		}
 	}
 
-	ticker := time.NewTicker(1 * time.Hour)
+	ticker := time.NewTicker(10 * time.Second)
 	go func() {
 		for range ticker.C {
-			if tft.CheckForUpdate() {
+			found := foundPreviousMessage(dg)
+			if tft.CheckForUpdate() || !found {
 				sendUpdate(dg)
 			}
 		}
@@ -78,6 +81,22 @@ func printNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Content == (Prefix + "print") {
 		sendUpdate(dg)
 	}
+}
+
+func foundPreviousMessage(dg *discordgo.Session) bool {
+	messages, err := dg.ChannelMessages(ChannelId, 5, "", "", "")
+	if err != nil {
+		fmt.Println("error fetching channel messages,", err)
+		return true
+	}
+
+	for _, message := range messages {
+		if message.Content == tft.GetPatchNotes() {
+			return true
+		}
+	}
+
+	return false
 }
 
 func sendUpdate(dg *discordgo.Session) {

@@ -130,6 +130,8 @@ func createPatchNotes() bool {
 		patchNotes += ("\n")
 	}
 
+	patchNotes = strings.TrimRight(patchNotes, "\n")
+
 	return true
 }
 
