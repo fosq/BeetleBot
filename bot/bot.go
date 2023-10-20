@@ -51,7 +51,7 @@ func StartBot() {
 		}
 	}
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(1 * time.Hour)
 	go func() {
 		for range ticker.C {
 			found := foundPreviousMessage(dg)
