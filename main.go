@@ -1,12 +1,7 @@
 package main
 
-import (
-	tft "discordbot/bot"
-)
+import "discordbot/bot"
 
 func main() {
-	tft.CreatePatchNotes()
-	if tft.ComparePatchNotes() {
-		// send bot data
-	}
+	bot.StartBot()
 }

@@ -127,7 +127,6 @@ func createPatchNotes() bool {
 		for j := range titleContentMap[headings[i]] {
 			patchNotes += ("- " + titleContentMap[headings[i]][j] + "\n")
 		}
-
 		patchNotes += ("\n")
 	}
 
