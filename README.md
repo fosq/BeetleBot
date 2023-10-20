@@ -15,11 +15,11 @@ flag.StringVar(&Token, "token", "TOKEN HERE", "Bot Token")
 
 To build BeetleBot as a Windows 64-bit .exe file, use the command:
 ```
-go build GOOS=windows GOARCH=amd64
+GOOS=windows GOARCH=amd64 go build
 ```
 For Linux:
 ```
-go build GOOS=linux GOARCH=amd64
+GOOS=linux GOARCH=amd64 go build
 ```
 
 Run the executable file
