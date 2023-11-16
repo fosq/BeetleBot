@@ -3,9 +3,9 @@ package tft
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	activePatchNotes    string
-	patchNotes          string
-	currentPatchVersion string
+	patchNotes   []PatchNote // Latest 5 patches with parsed messages
+	newPatchNote PatchNote   // Latest fetched patch note for comparison
+	AllPatchInfo []PatchNote // All patches without parsed message
 )
 
 type PatchNote struct {
@@ -24,26 +24,25 @@ type PatchNote struct {
 	PatchVersion string `json:"patchVersion"`
 	RegisteredAt int64  `json:"registeredAt"`
 	Season       string `json:"season"`
+	Message      string `json:"message"`
 }
 
-func createPatchNotes() bool {
-	var (
-		titleContentMap = make(map[string][]string, 0)
-		headings        []string
-		setVersion      string
-	)
+func fetchPatchNotes(id int) (*http.Response, error) {
+	var patchId string
 
-	count := -1
+	if id != 0 {
+		patchId = strconv.Itoa(id)
+	}
+
 	// Create HTTP client with timeout
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
 	// Create and modify HTTP request before sending
-	request, err := http.NewRequest("GET", "https://lolchess.gg/guide/patch-notes", nil)
+	request, err := http.NewRequest("GET", "https://lolchess.gg/guide/patch-notes/"+patchId, nil)
 	if err != nil {
-		fmt.Println(err)
-		return false
+		return nil, err
 	}
 	request.Header.Set("Accept-Language", "en")
 	request.Header.Set("User-Agent", "BeetleBot - TFT Patch notes scraper for a private Discord server")
@@ -51,21 +50,30 @@ func createPatchNotes() bool {
 	// Make request
 	response, err := client.Do(request)
 	if err != nil {
-		fmt.Println(err)
-		return false
+		return nil, err
 	}
+
+	return response, nil
+}
+
+func parsePatchNotes(response *http.Response) error {
+	var (
+		titleContentMap = make(map[string][]string, 0)
+		headings        []string
+		setVersion      string
+	)
+	count := -1
+
 	defer response.Body.Close()
 
 	document, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
-		fmt.Println(err)
-		return false
+		return err
 	}
 
 	// Find patch notes' headings and contents from <section>
 	document.Find("section[class*='ep0afc42']").Each(func(index int, items *goquery.Selection) {
 		items.Find("div[class='css-1qhzwuq e18ae7l60']").Each(func(index int, item *goquery.Selection) {
-
 			// Headings
 			item.Find("div[class='css-kvkqpd e18ae7l61']").Each(func(index int, element *goquery.Selection) {
 				content := strings.TrimSpace(element.Text())
@@ -93,71 +101,92 @@ func createPatchNotes() bool {
 	r := regexp.MustCompile(`patchNotes":(\[.*?\])`)
 	matches := r.FindStringSubmatch(jsonData)
 	if len(matches) < 2 {
-		log.Fatal("Could not find JSON data")
+		return fmt.Errorf("could not find JSON data")
 	}
 	extractedJSON := matches[1]
 
 	// Parse the extracted JSON data
-	var patchNotesObj []PatchNote
-	err = json.Unmarshal([]byte(extractedJSON), &patchNotesObj)
+	err = json.Unmarshal([]byte(extractedJSON), &AllPatchInfo)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	latestPatchNote := patchNotesObj[0]
-	currentPatchVersion = latestPatchNote.PatchVersion
+	newPatchNote = AllPatchInfo[0]
 
 	//// Write formatted patch notes to file
 	// Write set version
-	parts := regexp.MustCompile(`([a-zA-Z]+)(\d+\.\d+)`).FindStringSubmatch(latestPatchNote.Season)
+	parts := regexp.MustCompile(`([a-zA-Z]+)(\d+\.\d+)`).FindStringSubmatch(newPatchNote.Season)
 	setVersion = strings.ToUpper(strings.Join(parts[1:], " "))
 
-	patchNotes += ("# " + setVersion + "\n")
+	newPatchNote.Message += ("# " + setVersion + "\n")
 
 	// Write patch date and version
-	fullDate := time.Unix(latestPatchNote.RegisteredAt/1000, 0)
+	fullDate := time.Unix(newPatchNote.RegisteredAt/1000, 0)
 	printDate := fullDate.Month().String()[:3] + " " + strconv.Itoa(fullDate.Day())
 
-	patchNotes += ("## " + printDate + " - __" + latestPatchNote.PatchVersion + "__\n\n")
+	newPatchNote.Message += ("## " + printDate + " - __" + newPatchNote.PatchVersion + "__\n\n")
 
 	for i := range headings {
-		patchNotes += ("__**" + headings[i] + "**__\n")
+		newPatchNote.Message += ("__**" + headings[i] + "**__\n")
 
 		// Write headings' content
 		for j := range titleContentMap[headings[i]] {
-			patchNotes += ("- " + titleContentMap[headings[i]][j] + "\n")
+			newPatchNote.Message += ("- " + titleContentMap[headings[i]][j] + "\n")
 		}
-		patchNotes += ("\n")
+		newPatchNote.Message += ("\n")
 	}
 
-	patchNotes = strings.TrimRight(patchNotes, "\n")
+	newPatchNote.Message = strings.TrimRight(newPatchNote.Message, "\n")
 
-	return true
+	return nil
 }
 
+// Returns true if patchNotes requires updating OR if patchNotes is empty
 func comparePatchNotes() bool {
-	if activePatchNotes == patchNotes {
-		patchNotes = ""
+	if len(patchNotes) == 0 {
+		patchNotes = AllPatchInfo[:5] // Fetch 5 latest patch notes
+		sortPatchNotes()
+		patchNotes[len(patchNotes)-1].Message = newPatchNote.Message
 		return false
 	}
 
-	activePatchNotes = patchNotes
-	patchNotes = ""
-	fmt.Printf("Patches updated to version %v\n", currentPatchVersion)
+	if patchNotes[len(patchNotes)-1].PatchVersion == newPatchNote.PatchVersion {
+		return false
+	}
 
 	return true
 }
 
 // Compares previously saved patch notes from newly fetched ones, returns true if change was found
-func CheckForUpdate() bool {
-	if !createPatchNotes() {
+func UpdatePatches() bool {
+	response, err := fetchPatchNotes(0)
+	if err != nil {
+		fmt.Println(err)
 		return false
 	}
-	fmt.Printf("%v - Current patch version: %v\n", time.Now().Format(time.RFC3339), currentPatchVersion)
 
-	return comparePatchNotes()
+	if err := parsePatchNotes(response); err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	if comparePatchNotes() {
+		patchNotes = append(patchNotes, newPatchNote)
+		fmt.Printf("Patches updated to version %v\n", patchNotes[len(patchNotes)-1].PatchVersion)
+		return true
+	}
+
+	fmt.Printf("%v - Current patch version: %v\n", time.Now().Format(time.RFC3339), patchNotes[len(patchNotes)-1].PatchVersion)
+	return false
+}
+
+// Sorts patchNotes by ID ascendingly
+func sortPatchNotes() {
+	sort.Slice(patchNotes, func(i, j int) bool {
+		return patchNotes[i].ID < patchNotes[j].ID
+	})
 }
 
 func GetPatchNotes() string {
-	return activePatchNotes
+	return patchNotes[len(patchNotes)-1].Message
 }

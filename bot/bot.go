@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"discordbot/tft"
 	"flag"
 	"fmt"
 	"os"
@@ -9,12 +8,16 @@ import (
 	"syscall"
 	"time"
 
+	"discordbot/tft"
+
 	"github.com/bwmarrin/discordgo"
 )
 
-var Token string
-var Prefix string
-var ChannelId string
+var (
+	Token     string
+	Prefix    string
+	ChannelId string
+)
 
 func init() {
 	flag.StringVar(&Token, "token", "TOKEN HERE", "Bot Token")
@@ -45,7 +48,7 @@ func StartBot() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
 	// Initial check for updates
-	if tft.CheckForUpdate() {
+	if tft.UpdatePatches() {
 		if found := foundPreviousMessage(dg); !found {
 			sendUpdate(dg)
 		}
@@ -55,7 +58,7 @@ func StartBot() {
 	go func() {
 		for range ticker.C {
 			found := foundPreviousMessage(dg)
-			if tft.CheckForUpdate() || !found {
+			if tft.UpdatePatches() || !found {
 				sendUpdate(dg)
 			}
 		}
@@ -67,7 +70,6 @@ func StartBot() {
 }
 
 func printNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
-
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == dg.State.User.ID {
 		return
