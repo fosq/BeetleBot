@@ -141,20 +141,9 @@ func parsePatchNotes(response *http.Response) error {
 	return nil
 }
 
-// Returns true if patchNotes requires updating OR if patchNotes is empty
+// Returns true if latest patchNotes patch version differs from newly fetched patch version
 func comparePatchNotes() bool {
-	if len(patchNotes) == 0 {
-		patchNotes = AllPatchInfo[:5] // Fetch 5 latest patch notes
-		sortPatchNotes()
-		patchNotes[len(patchNotes)-1].Message = newPatchNote.Message
-		return false
-	}
-
-	if patchNotes[len(patchNotes)-1].PatchVersion == newPatchNote.PatchVersion {
-		return false
-	}
-
-	return true
+	return patchNotes[len(patchNotes)-1].PatchVersion != newPatchNote.PatchVersion
 }
 
 // Compares previously saved patch notes from newly fetched ones, returns true if change was found
@@ -168,6 +157,14 @@ func UpdatePatches() bool {
 	if err := parsePatchNotes(response); err != nil {
 		fmt.Println(err)
 		return false
+	}
+
+	if len(patchNotes) == 0 {
+		fmt.Println("Initializing: Setting up patch notes list")
+		patchNotes = AllPatchInfo[:5] // Fetch 5 latest patch notes
+		sortPatchNotes()
+		patchNotes[len(patchNotes)-1].Message = newPatchNote.Message
+		return true
 	}
 
 	if comparePatchNotes() {

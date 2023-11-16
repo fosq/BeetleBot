@@ -70,6 +70,7 @@ func StartBot() {
 }
 
 func printNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
+	fmt.Println("Received PRINT function")
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == dg.State.User.ID {
 		return
