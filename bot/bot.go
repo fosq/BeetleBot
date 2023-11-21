@@ -34,8 +34,9 @@ func StartBot() {
 		return
 	}
 
-	// Handler for !print
+	// Handler for !print, !update
 	dg.AddHandler(printNotes)
+	dg.AddHandler(updateNotes)
 
 	err = dg.Open()
 	if err != nil {
@@ -55,11 +56,10 @@ func StartBot() {
 		}
 	}
 
-	ticker := time.NewTicker(1 * time.Hour)
+	ticker := time.NewTicker(30 * time.Minute)
 	go func() {
 		for range ticker.C {
-			found := foundPreviousMessage(dg)
-			if tft.UpdatePatches() || !found {
+			if tft.UpdatePatches() {
 				sendUpdate(dg)
 			}
 		}
@@ -71,7 +71,6 @@ func StartBot() {
 }
 
 func printNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
-	fmt.Println("Received PRINT function")
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == dg.State.User.ID {
 		return
@@ -83,28 +82,54 @@ func printNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if m.Content == (Prefix + "print") {
+		fmt.Println("Received 'PRINT' command")
 		sendUpdate(dg)
 	}
 }
 
+func updateNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
+	// Ignore all messages created by the bot itself
+	if m.Author.ID == dg.State.User.ID {
+		return
+	}
+
+	// Ignore all messages not in the given channel
+	if m.ChannelID != ChannelId {
+		return
+	}
+
+	if m.Content == (Prefix + "update") {
+		fmt.Println("Received 'UPDATE' command")
+		if tft.UpdatePatches() {
+			sendUpdate(dg)
+			return
+		}
+		dg.ChannelMessageSend(ChannelId, "No new patch notes were found.")
+	}
+}
+
 func foundPreviousMessage(dg *discordgo.Session) bool {
-	messages, err := dg.ChannelMessages(ChannelId, 5, "", "", "")
+	notes := tft.GetPatchNotes()
+	notesChunks := splitMessage(notes)
+
+	messages, err := dg.ChannelMessages(ChannelId, 15, "", "", "")
 	if err != nil {
 		fmt.Println("error fetching channel messages,", err)
 		return true
 	}
 
-	for _, message := range messages {
-		if message.Content == tft.GetPatchNotes() {
+	for i, message := range messages {
+		if message.Content == notesChunks[len(notesChunks)-1] && i <= len(notesChunks) {
+			fmt.Println("Found equal patch notes in previously sent message")
 			return true
 		}
 	}
-
 	return false
 }
 
 func sendUpdate(dg *discordgo.Session) {
 	notes := tft.GetPatchNotes()
+
 	if len(notes) >= 2000 {
 		messageArr := splitMessage(notes)
 		for i := range messageArr {

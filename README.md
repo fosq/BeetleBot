@@ -1,6 +1,6 @@
 ## About
 
-BeetleBot is a simple lolchess.gg scraper with Discord API integration which fetches TFT patch notes every hour and sends the latest patch notes to the designated Discord channel. 
+BeetleBot is a simple lolchess.gg scraper with Discord API integration which fetches TFT patch notes every half an hour and sends the latest patch notes to the designated Discord channel. 
 
 ## Getting Started
 
@@ -34,8 +34,13 @@ Run the executable file
 
 ### Usage
 
-BeetleBot automatically scrapes latest patches every hour and sends the newest patch notes if a difference to the previously saved patch was found OR the same patch note has been already sent in the previous 5 messages OR
+BeetleBot automatically scrapes latest patches every half an hour and sends the newest patch notes if a difference to the previously saved patch was found OR when
 ```
 !print
 ```
 is invoked. (doesn't check for latest patch, just sends the currently saved patch notes)
+
+To check for updates immediately, type:
+```
+!update
+```

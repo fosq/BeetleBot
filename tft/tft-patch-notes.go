@@ -3,6 +3,7 @@ package tft
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"sort"
@@ -15,7 +16,6 @@ import (
 
 var (
 	patchNotes   []PatchNote // Latest 5 patches with parsed messages
-	newPatchNote PatchNote   // Latest fetched patch note for comparison
 	AllPatchInfo []PatchNote // All patches without parsed message
 )
 
@@ -56,7 +56,9 @@ func fetchPatchNotes(id int) (*http.Response, error) {
 	return response, nil
 }
 
-func parsePatchNotes(response *http.Response) error {
+func parsePatchNotes(response *http.Response) (PatchNote, error) {
+	var newPatchNote PatchNote
+
 	var (
 		titleContentMap = make(map[string][]string, 0)
 		headings        []string
@@ -68,7 +70,7 @@ func parsePatchNotes(response *http.Response) error {
 
 	document, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
-		return err
+		return PatchNote{}, err
 	}
 
 	// Find patch notes' headings and contents from <section>
@@ -101,17 +103,17 @@ func parsePatchNotes(response *http.Response) error {
 	r := regexp.MustCompile(`patchNotes":(\[.*?\])`)
 	matches := r.FindStringSubmatch(jsonData)
 	if len(matches) < 2 {
-		return fmt.Errorf("could not find JSON data")
+		return PatchNote{}, fmt.Errorf("could not find JSON data")
 	}
 	extractedJSON := matches[1]
 
 	// Parse the extracted JSON data
 	err = json.Unmarshal([]byte(extractedJSON), &AllPatchInfo)
 	if err != nil {
-		return err
+		return PatchNote{}, err
 	}
-
-	newPatchNote = AllPatchInfo[0]
+	AllPatchInfo = sortPatchNotes(AllPatchInfo)
+	newPatchNote = AllPatchInfo[len(AllPatchInfo)-1]
 
 	//// Write formatted patch notes to file
 	// Write set version
@@ -138,11 +140,11 @@ func parsePatchNotes(response *http.Response) error {
 
 	newPatchNote.Message = strings.TrimRight(newPatchNote.Message, "\n")
 
-	return nil
+	return newPatchNote, nil
 }
 
 // Returns true if latest patchNotes patch version differs from newly fetched patch version
-func comparePatchNotes() bool {
+func comparePatchNotes(newPatchNote PatchNote) bool {
 	return patchNotes[len(patchNotes)-1].PatchVersion != newPatchNote.PatchVersion
 }
 
@@ -154,20 +156,19 @@ func UpdatePatches() bool {
 		return false
 	}
 
-	if err := parsePatchNotes(response); err != nil {
-		fmt.Println(err)
-		return false
+	newPatchNote, err := parsePatchNotes(response)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	if len(patchNotes) == 0 {
-		fmt.Println("Initializing: Setting up patch notes list")
-		patchNotes = AllPatchInfo[:5] // Fetch 5 latest patch notes
-		sortPatchNotes()
+		fmt.Printf("Initializing: Setting up patch notes list from version %v to %v\n", patchNotes[0], patchNotes[len(patchNotes)-1])
+		patchNotes = AllPatchInfo[len(AllPatchInfo)-5:] // Fetch 5 latest patch notes
 		patchNotes[len(patchNotes)-1].Message = newPatchNote.Message
 		return true
 	}
 
-	if comparePatchNotes() {
+	if comparePatchNotes(newPatchNote) {
 		patchNotes = append(patchNotes, newPatchNote)
 		fmt.Printf("Patches updated to version %v\n", patchNotes[len(patchNotes)-1].PatchVersion)
 		return true
@@ -178,10 +179,11 @@ func UpdatePatches() bool {
 }
 
 // Sorts patchNotes by ID ascendingly
-func sortPatchNotes() {
-	sort.Slice(patchNotes, func(i, j int) bool {
-		return patchNotes[i].ID < patchNotes[j].ID
+func sortPatchNotes(notes []PatchNote) []PatchNote {
+	sort.Slice(notes, func(i, j int) bool {
+		return notes[i].ID < notes[j].ID
 	})
+	return notes
 }
 
 func GetPatchNotes() string {
