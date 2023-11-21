@@ -162,8 +162,9 @@ func UpdatePatches() bool {
 	}
 
 	if len(patchNotes) == 0 {
-		fmt.Printf("Initializing: Setting up patch notes list from version %v to %v\n", patchNotes[0], patchNotes[len(patchNotes)-1])
+		fmt.Println("Initializing: Setting up patch notes list")
 		patchNotes = AllPatchInfo[len(AllPatchInfo)-5:] // Fetch 5 latest patch notes
+		fmt.Printf("Initializing: Added patch notes from version %v to %v\n", patchNotes[0].PatchVersion, patchNotes[len(patchNotes)-1].PatchVersion)
 		patchNotes[len(patchNotes)-1].Message = newPatchNote.Message
 		return true
 	}
