@@ -44,3 +44,8 @@ To check for updates immediately, type:
 ```
 !update
 ```
+
+To purge previous messages (up to 100), type:
+```
+!purge <number> (e.g. !purge 30)
+```

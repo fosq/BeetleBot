@@ -117,12 +117,8 @@ func parsePatchNotes(response *http.Response) (PatchNote, error) {
 
 	//// Write formatted patch notes to file
 	// Write set version
-	parts := regexp.MustCompile(`([a-zA-Z]+)(\d+\.\d+)`).FindStringSubmatch(newPatchNote.Season)
-	if parts == nil {
-		setVersion = newPatchNote.Season
-	} else {
-		setVersion = strings.ToUpper(strings.Join(parts[1:], " "))
-	}
+	parts := regexp.MustCompile(`([a-zA-Z]+)((\d+\.\d+)|(\d+))`).FindStringSubmatch(newPatchNote.Season)
+	setVersion = strings.ToUpper(strings.Join(parts[1:3], " "))
 
 	newPatchNote.Message += ("# " + setVersion + "\n")
 

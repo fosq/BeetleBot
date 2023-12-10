@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -37,6 +38,7 @@ func StartBot() {
 	// Handler for !print, !update
 	dg.AddHandler(printNotes)
 	dg.AddHandler(updateNotes)
+	dg.AddHandler(purge)
 
 	err = dg.Open()
 	if err != nil {
@@ -138,6 +140,8 @@ func sendUpdate(dg *discordgo.Session) {
 	} else {
 		dg.ChannelMessageSend(ChannelId, notes)
 	}
+	dg.ChannelMessageSend(ChannelId, "======================================================")
+	dg.ChannelMessageSend(ChannelId, "======================================================")
 }
 
 // Split messages that reach Discord's message character limit of 2000
@@ -163,13 +167,75 @@ func splitMessage(input string) []string {
 		// If a header is found and it's not at the very start of the chunk,
 		// use it as the split point. Otherwise, split at the character limit.
 		if lastHeaderIndex > start {
-			chunks = append(chunks, input[start:lastHeaderIndex])
+			chunks = append(chunks, "_ _\n"+input[start:lastHeaderIndex]) // "_ _" for a blank line
 			start = lastHeaderIndex
 		} else {
-			chunks = append(chunks, input[start:end])
+			chunks = append(chunks, "_ _\n"+input[start:end])
 			start = end
 		}
 	}
 
 	return chunks
+}
+
+func purge(dg *discordgo.Session, m *discordgo.MessageCreate) {
+	var bulkDelete bool
+
+	if m.Author.ID == dg.State.User.ID {
+		return
+	}
+
+	if m.ChannelID != ChannelId {
+		return
+	}
+
+	baseExpr := `^(%vpurge)(?: (\d+))?$`
+	expr := fmt.Sprintf(baseExpr, Prefix)
+
+	r, _ := regexp.Compile(expr)
+
+	if r.MatchString(m.Content) {
+		matches := r.FindStringSubmatch(m.Content)
+		numToDelete, err := strconv.Atoi(matches[2])
+		if err != nil {
+			numToDelete = 1
+		}
+
+		if numToDelete > 20 {
+			bulkDelete = true
+		}
+
+		if numToDelete > 100 {
+			dg.ChannelMessageSend(m.ChannelID, "Too many messages to delete, select a number less than 100.")
+			return
+		}
+		fmt.Println("Received 'PURGE' command")
+
+		messagesToDelete, err := dg.ChannelMessages(m.ChannelID, numToDelete+1, "", "", "")
+		if err != nil {
+			fmt.Println("Error retrieving messages:", err)
+			return
+		}
+
+		var messageIds []string
+		for _, message := range messagesToDelete {
+			if !bulkDelete {
+				err := dg.ChannelMessageDelete(m.ChannelID, message.ID)
+				if err != nil {
+					fmt.Println("Error deleting message:", err)
+					return
+				}
+			} else {
+				messageIds = append(messageIds, message.ID)
+			}
+		}
+
+		if bulkDelete {
+			err = dg.ChannelMessagesBulkDelete(m.ChannelID, messageIds)
+			if err != nil {
+				fmt.Println("Error bulk deleting messages:", err)
+				return
+			}
+		}
+	}
 }
