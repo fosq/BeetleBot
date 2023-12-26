@@ -17,6 +17,7 @@ func WriteLogFile(a ...any) {
 
 	for i := range a {
 		log.Print(a[i])
+		fmt.Print(a[i])
 	}
 }
 
@@ -45,7 +46,7 @@ func CheckDataRetention(daysToKeep int, fileName string) {
 		file, err := os.Create(fileName)
 		Check(err)
 		defer file.Close()
-		WriteLogFile(fmt.Sprintf("The file %v has been cleared because the data stored is older than %v days.", fileName, daysToKeep))
+		WriteLogFile(fmt.Sprintf("The file %v has been cleared because the data stored is older than %v days.\n", fileName, daysToKeep))
 	}
 }
 
@@ -53,7 +54,6 @@ func Check(err error) bool {
 	if err != nil {
 		WriteErrorLogFile(err)
 		WriteLogFile(err)
-		fmt.Println(err)
 		return false
 	}
 	return true
