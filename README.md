@@ -7,7 +7,6 @@ BeetleBot is a simple lolchess.gg scraper with Discord API integration which fet
 2. Get your bot token from [https://discord.com/build/app-developers](https://discord.com/build/app-developers).
 3. Get the `channel id` where the patch notes will be sent to.
 4. Enter your `bot token` and `channel id` when the terminal prompts you to do so upon running the executable.
-<br>
 
 ## Compiling your own build
 1. Clone the repository
