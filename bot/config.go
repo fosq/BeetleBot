@@ -10,9 +10,9 @@ import (
 
 var (
 	globalConfig   Config
-	logFileName    = "logs.txt"
-	errorFileName  = "errors.txt"
-	configFileName = "config.json"
+	LogFileName    = "logs.txt"
+	ErrorFileName  = "errors.txt"
+	ConfigFileName = "config.json"
 )
 
 type Config struct {
@@ -24,38 +24,38 @@ type Config struct {
 func SetConfig() {
 	//// logs.Check if any of the given files exist, creates them if not found
 	// Logging file
-	_, err := os.Stat(logFileName)
+	_, err := os.Stat(LogFileName)
 	if errors.Is(err, os.ErrNotExist) {
-		createFile(logFileName)
+		createFile(LogFileName)
 	} else {
-		logs.CheckDataRetention(30, logFileName)
+		logs.CheckDataRetention(30, LogFileName)
 	}
 
 	// Error file
-	_, err = os.Stat(errorFileName)
+	_, err = os.Stat(ErrorFileName)
 	if errors.Is(err, os.ErrNotExist) {
-		createFile(errorFileName)
+		createFile(ErrorFileName)
 	} else {
-		logs.CheckDataRetention(0, errorFileName)
+		logs.CheckDataRetention(0, ErrorFileName)
 	}
 
 	// Configuration file creation if not found
-	_, err = os.Stat(configFileName)
+	_, err = os.Stat(ConfigFileName)
 	if errors.Is(err, os.ErrNotExist) {
-		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' not found. Creating a new one...", configFileName))
-		createFile(configFileName)
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' not found. Creating a new one...", ConfigFileName))
+		createFile(ConfigFileName)
 		PromptAndSetConfig()
 		return
 	}
 
-	file, err := os.ReadFile(configFileName)
+	file, err := os.ReadFile(ConfigFileName)
 	if !logs.Check(err) {
 		os.Exit(1)
 	}
 
 	// Configuration file creation if file empty
 	if len(file) == 0 {
-		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is empty. Creating a new one.\n", configFileName))
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is empty. Creating a new one.\n", ConfigFileName))
 		PromptAndSetConfig()
 		return
 	}
@@ -63,7 +63,7 @@ func SetConfig() {
 	var config Config
 	err = json.Unmarshal(file, &config)
 	if !logs.Check(err) {
-		fmt.Printf("Configuration file '%v' is corrupted. Please correct the file or re-enter the config prompts:\n", configFileName)
+		fmt.Printf("Configuration file '%v' is corrupted. Please correct the file or re-enter the config prompts:\n", ConfigFileName)
 		PromptAndSetConfig()
 		return
 	}
@@ -73,7 +73,7 @@ func SetConfig() {
 }
 
 func WriteConfig(config Config) {
-	file, err := os.OpenFile(configFileName, os.O_WRONLY, 0644)
+	file, err := os.OpenFile(ConfigFileName, os.O_WRONLY, 0644)
 	if !logs.Check(err) {
 		os.Exit(1)
 	}

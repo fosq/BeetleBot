@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"discordbot/bot"
 	"fmt"
 	"log"
 	"os"
@@ -8,7 +9,7 @@ import (
 )
 
 func WriteLogFile(a ...any) {
-	file, err := os.OpenFile("./logs.txt", os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(bot.LogFileName, os.O_WRONLY|os.O_APPEND, 0644)
 	if !Check(err) {
 		os.Exit(1)
 	}
@@ -21,7 +22,7 @@ func WriteLogFile(a ...any) {
 }
 
 func WriteErrorLogFile(mainErr error) {
-	file, err := os.OpenFile("./errors.txt", os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(bot.ErrorFileName, os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
