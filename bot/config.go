@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -94,19 +93,19 @@ func askInputs() Config {
 	fmt.Print("Enter your bot's Discord API token:\n")
 	_, err := fmt.Scan(&config.Token)
 	if !logs.Check(err) {
-		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	fmt.Print("\nEnter the channel, where the bot will be sending updates:\n")
 	_, err = fmt.Scan(&config.ChannelId)
 	if !logs.Check(err) {
-		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	fmt.Print("\nEnter the preferred prefix for commands (e.g. '!' for '!purge 3'):\n")
 	_, err = fmt.Scan(&config.Prefix)
 	if !logs.Check(err) {
-		log.Fatal(err)
+		os.Exit(1)
 	}
 	fmt.Println()
 
