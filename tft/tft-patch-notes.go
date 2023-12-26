@@ -1,10 +1,11 @@
 package tft
 
 import (
+	"discordbot/logs"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -103,7 +104,7 @@ func parsePatchNotes(response *http.Response) (PatchNote, error) {
 	r := regexp.MustCompile(`patchNotes":(\[.*?\])`)
 	matches := r.FindStringSubmatch(jsonData)
 	if len(matches) < 2 {
-		return PatchNote{}, fmt.Errorf("could not find JSON data")
+		return PatchNote{}, fmt.Errorf("could not find JSON data matches for extracting patch notes, check the site if it is up")
 	}
 	extractedJSON := matches[1]
 
@@ -151,14 +152,13 @@ func comparePatchNotes(newPatchNote PatchNote) bool {
 // Compares previously saved patch notes from newly fetched ones, returns true if change was found
 func UpdatePatches() bool {
 	response, err := fetchPatchNotes(0)
-	if err != nil {
-		fmt.Println(err)
-		return false
+	if !logs.Check(err) {
+		os.Exit(1)
 	}
 
 	newPatchNote, err := parsePatchNotes(response)
-	if err != nil {
-		log.Fatal(err)
+	if !logs.Check(err) {
+		os.Exit(1)
 	}
 
 	if len(patchNotes) == 0 {

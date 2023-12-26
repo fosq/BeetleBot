@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -10,28 +9,16 @@ import (
 	"syscall"
 	"time"
 
+	"discordbot/logs"
 	"discordbot/tft"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-var (
-	Token     string
-	Prefix    string
-	ChannelId string
-)
-
-func init() {
-	flag.StringVar(&Token, "token", "TOKEN HERE", "Bot Token")
-	flag.StringVar(&Prefix, "prefix", "!", "Chat prefix, e.g. '!'' for '!print'")
-	flag.StringVar(&ChannelId, "channelid", "CHANNEL ID HERE", "Channel id where message is sent to")
-	flag.Parse()
-}
-
 func StartBot() {
-	dg, err := discordgo.New("Bot " + Token)
+	dg, err := discordgo.New("Bot " + globalConfig.Token)
 	if err != nil {
-		fmt.Println("error creating Discord session,", err)
+		logs.WriteLogFile("error creating Discord session,", err)
 		return
 	}
 
@@ -42,12 +29,12 @@ func StartBot() {
 
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("error opening connection,", err)
+		logs.WriteLogFile("error opening connection,", err)
 		return
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("Bot is now running.  Press CTRL-C to exit.")
+	logs.WriteLogFile("Bot is now running.  Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
@@ -79,12 +66,12 @@ func printNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// Ignore all messages not in the given channel
-	if m.ChannelID != ChannelId {
+	if m.ChannelID != globalConfig.ChannelId {
 		return
 	}
 
-	if m.Content == (Prefix + "print") {
-		fmt.Println("Received 'PRINT' command")
+	if m.Content == (globalConfig.Prefix + "print") {
+		logs.WriteLogFile("Received 'PRINT' command")
 		sendUpdate(dg)
 	}
 }
@@ -96,17 +83,17 @@ func updateNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// Ignore all messages not in the given channel
-	if m.ChannelID != ChannelId {
+	if m.ChannelID != globalConfig.ChannelId {
 		return
 	}
 
-	if m.Content == (Prefix + "update") {
-		fmt.Println("Received 'UPDATE' command")
+	if m.Content == (globalConfig.Prefix + "update") {
+		logs.WriteLogFile("Received 'UPDATE' command")
 		if tft.UpdatePatches() {
 			sendUpdate(dg)
 			return
 		}
-		dg.ChannelMessageSend(ChannelId, "No new patch notes were found.")
+		dg.ChannelMessageSend(globalConfig.ChannelId, "No new patch notes were found.")
 	}
 }
 
@@ -114,15 +101,15 @@ func foundPreviousMessage(dg *discordgo.Session) bool {
 	notes := tft.GetPatchNotes()
 	notesChunks := splitMessage(notes)
 
-	messages, err := dg.ChannelMessages(ChannelId, 15, "", "", "")
+	messages, err := dg.ChannelMessages(globalConfig.ChannelId, 15, "", "", "")
 	if err != nil {
-		fmt.Println("error fetching channel messages,", err)
+		logs.WriteLogFile("error fetching channel messages,", err)
 		return true
 	}
 
 	for i, message := range messages {
 		if message.Content == notesChunks[len(notesChunks)-1] && i <= len(notesChunks) {
-			fmt.Println("Found equal patch notes in previously sent message")
+			logs.WriteLogFile("Found equal patch notes in previously sent message")
 			return true
 		}
 	}
@@ -135,13 +122,13 @@ func sendUpdate(dg *discordgo.Session) {
 	if len(notes) >= 2000 {
 		messageArr := splitMessage(notes)
 		for i := range messageArr {
-			dg.ChannelMessageSend(ChannelId, messageArr[i])
+			dg.ChannelMessageSend(globalConfig.ChannelId, messageArr[i])
 		}
 	} else {
-		dg.ChannelMessageSend(ChannelId, notes)
+		dg.ChannelMessageSend(globalConfig.ChannelId, notes)
 	}
-	dg.ChannelMessageSend(ChannelId, "======================================================")
-	dg.ChannelMessageSend(ChannelId, "======================================================")
+	dg.ChannelMessageSend(globalConfig.ChannelId, "======================================================")
+	dg.ChannelMessageSend(globalConfig.ChannelId, "======================================================")
 }
 
 // Split messages that reach Discord's message character limit of 2000
@@ -185,12 +172,12 @@ func purge(dg *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if m.ChannelID != ChannelId {
+	if m.ChannelID != globalConfig.ChannelId {
 		return
 	}
 
 	baseExpr := `^(%vpurge)(?: (\d+))?$`
-	expr := fmt.Sprintf(baseExpr, Prefix)
+	expr := fmt.Sprintf(baseExpr, globalConfig.Prefix)
 
 	r, _ := regexp.Compile(expr)
 
@@ -209,11 +196,10 @@ func purge(dg *discordgo.Session, m *discordgo.MessageCreate) {
 			dg.ChannelMessageSend(m.ChannelID, "Too many messages to delete, select a number less than 100.")
 			return
 		}
-		fmt.Println("Received 'PURGE' command")
+		logs.WriteLogFile("Received 'PURGE' command")
 
 		messagesToDelete, err := dg.ChannelMessages(m.ChannelID, numToDelete+1, "", "", "")
-		if err != nil {
-			fmt.Println("Error retrieving messages:", err)
+		if !logs.Check(err) {
 			return
 		}
 
@@ -221,8 +207,7 @@ func purge(dg *discordgo.Session, m *discordgo.MessageCreate) {
 		for _, message := range messagesToDelete {
 			if !bulkDelete {
 				err := dg.ChannelMessageDelete(m.ChannelID, message.ID)
-				if err != nil {
-					fmt.Println("Error deleting message:", err)
+				if !logs.Check(err) {
 					return
 				}
 			} else {
@@ -232,8 +217,7 @@ func purge(dg *discordgo.Session, m *discordgo.MessageCreate) {
 
 		if bulkDelete {
 			err = dg.ChannelMessagesBulkDelete(m.ChannelID, messageIds)
-			if err != nil {
-				fmt.Println("Error bulk deleting messages:", err)
+			if !logs.Check(err) {
 				return
 			}
 		}

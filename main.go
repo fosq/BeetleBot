@@ -1,9 +1,8 @@
 package main
 
-import (
-	"discordbot/bot"
-)
+import "discordbot/bot"
 
 func main() {
+	bot.SetConfig()
 	bot.StartBot()
 }
