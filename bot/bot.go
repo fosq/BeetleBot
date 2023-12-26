@@ -34,7 +34,7 @@ func StartBot() {
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
-	logs.WriteLogFile("Bot is now running.  Press CTRL-C to exit.")
+	logs.WriteLogFile("Bot is now running.  Press CTRL-C to exit.\n")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
@@ -127,8 +127,10 @@ func sendUpdate(dg *discordgo.Session) {
 	} else {
 		dg.ChannelMessageSend(globalConfig.ChannelId, notes)
 	}
-	dg.ChannelMessageSend(globalConfig.ChannelId, "======================================================")
-	dg.ChannelMessageSend(globalConfig.ChannelId, "======================================================")
+	dg.ChannelMessageSend(globalConfig.ChannelId,
+		"======================================================")
+	dg.ChannelMessageSend(globalConfig.ChannelId,
+		"======================================================")
 }
 
 // Split messages that reach Discord's message character limit of 2000
@@ -154,7 +156,8 @@ func splitMessage(input string) []string {
 		// If a header is found and it's not at the very start of the chunk,
 		// use it as the split point. Otherwise, split at the character limit.
 		if lastHeaderIndex > start {
-			chunks = append(chunks, "_ _\n"+input[start:lastHeaderIndex]) // "_ _" for a blank line
+			// "_ _" for a blank line
+			chunks = append(chunks, "_ _\n"+input[start:lastHeaderIndex])
 			start = lastHeaderIndex
 		} else {
 			chunks = append(chunks, "_ _\n"+input[start:end])
@@ -193,7 +196,8 @@ func purge(dg *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 
 		if numToDelete > 100 {
-			dg.ChannelMessageSend(m.ChannelID, "Too many messages to delete, select a number less than 100.")
+			dg.ChannelMessageSend(m.ChannelID,
+				"Too many messages to delete, select a number less than 100.")
 			return
 		}
 		logs.WriteLogFile("Received 'PURGE' command")

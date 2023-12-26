@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -104,7 +103,8 @@ func parsePatchNotes(response *http.Response) (PatchNote, error) {
 	r := regexp.MustCompile(`patchNotes":(\[.*?\])`)
 	matches := r.FindStringSubmatch(jsonData)
 	if len(matches) < 2 {
-		return PatchNote{}, fmt.Errorf("could not find JSON data matches for extracting patch notes, check the site if it is up")
+		return PatchNote{},
+			fmt.Errorf("could not find any matches for all patch notes from lolchess.gg, re-running in 30 minutes")
 	}
 	extractedJSON := matches[1]
 
@@ -152,30 +152,29 @@ func comparePatchNotes(newPatchNote PatchNote) bool {
 // Compares previously saved patch notes from newly fetched ones, returns true if change was found
 func UpdatePatches() bool {
 	response, err := fetchPatchNotes(0)
-	if !logs.Check(err) {
-		os.Exit(1)
-	}
+	logs.Check(err)
 
 	newPatchNote, err := parsePatchNotes(response)
-	if !logs.Check(err) {
-		os.Exit(1)
-	}
+	logs.Check(err)
 
 	if len(patchNotes) == 0 {
-		fmt.Println("Initializing: Setting up patch notes list")
+		logs.WriteLogFile("Initializing: Setting up patch notes list")
 		patchNotes = AllPatchInfo[len(AllPatchInfo)-5:] // Fetch 5 latest patch notes
-		fmt.Printf("Initializing: Added patch notes from version %v to %v\n", patchNotes[0].PatchVersion, patchNotes[len(patchNotes)-1].PatchVersion)
+		logs.WriteLogFile(fmt.Sprintf("Initializing: Added patch notes from version %v to %v\n",
+			patchNotes[0].PatchVersion, patchNotes[len(patchNotes)-1].PatchVersion))
 		patchNotes[len(patchNotes)-1].Message = newPatchNote.Message
 		return true
 	}
 
 	if comparePatchNotes(newPatchNote) {
 		patchNotes = append(patchNotes, newPatchNote)
-		fmt.Printf("Patches updated to version %v\n", patchNotes[len(patchNotes)-1].PatchVersion)
+		logs.WriteLogFile(fmt.Sprintf("Patches updated to version %v\n",
+			patchNotes[len(patchNotes)-1].PatchVersion))
 		return true
 	}
 
-	fmt.Printf("%v - Current patch version: %v\n", time.Now().Format(time.RFC3339), patchNotes[len(patchNotes)-1].PatchVersion)
+	logs.WriteLogFile(fmt.Sprintf("%v - Current patch version: %v\n",
+		time.Now().Format(time.RFC3339), patchNotes[len(patchNotes)-1].PatchVersion))
 	return false
 }
 

@@ -42,7 +42,8 @@ func SetConfig() {
 	// Configuration file creation if not found
 	_, err = os.Stat(ConfigFileName)
 	if errors.Is(err, os.ErrNotExist) {
-		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' not found. Creating a new one...", ConfigFileName))
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' not found. Creating a new one...",
+			ConfigFileName))
 		createFile(ConfigFileName)
 		PromptAndSetConfig()
 		return
@@ -55,7 +56,8 @@ func SetConfig() {
 
 	// Configuration file creation if file empty
 	if len(file) == 0 {
-		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is empty. Creating a new one.\n", ConfigFileName))
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is empty. Creating a new one.\n",
+			ConfigFileName))
 		PromptAndSetConfig()
 		return
 	}
@@ -63,7 +65,8 @@ func SetConfig() {
 	var config Config
 	err = json.Unmarshal(file, &config)
 	if !logs.Check(err) {
-		fmt.Printf("Configuration file '%v' is corrupted. Please correct the file or re-enter the config prompts:\n", ConfigFileName)
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is corrupted. Please correct the file or re-enter the config prompts:\n",
+			ConfigFileName))
 		PromptAndSetConfig()
 		return
 	}

@@ -8,7 +8,7 @@ import (
 )
 
 func WriteLogFile(a ...any) {
-	file, err := os.OpenFile("./logs.txt", os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile("./logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if !Check(err) {
 		os.Exit(1)
 	}
@@ -22,15 +22,14 @@ func WriteLogFile(a ...any) {
 }
 
 func WriteErrorLogFile(mainErr error) {
-	file, err := os.OpenFile("./errors.txt", os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		fmt.Println(err)
+	file, err := os.OpenFile("./errors.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if !Check(err) {
 		os.Exit(1)
 	}
 	defer file.Close()
 
 	log.SetOutput(file)
-	log.Println(mainErr)
+	log.Printf("ERROR: %v", mainErr)
 }
 
 func CheckDataRetention(daysToKeep int, fileName string) {
@@ -46,7 +45,8 @@ func CheckDataRetention(daysToKeep int, fileName string) {
 		file, err := os.Create(fileName)
 		Check(err)
 		defer file.Close()
-		WriteLogFile(fmt.Sprintf("The file %v has been cleared because the data stored is older than %v days.\n", fileName, daysToKeep))
+		WriteLogFile(fmt.Sprintf("The file %v has been cleared because the data stored is older than %v days.\n",
+			fileName, daysToKeep))
 	}
 }
 
