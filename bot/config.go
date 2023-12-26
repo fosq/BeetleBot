@@ -42,7 +42,7 @@ func SetConfig() {
 	// Configuration file creation if not found
 	_, err = os.Stat(ConfigFileName)
 	if errors.Is(err, os.ErrNotExist) {
-		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' not found. Creating a new one...",
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' not found. Creating a new one...\n",
 			ConfigFileName))
 		createFile(ConfigFileName)
 		PromptAndSetConfig()

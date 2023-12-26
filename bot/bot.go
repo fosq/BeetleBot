@@ -17,8 +17,7 @@ import (
 
 func StartBot() {
 	dg, err := discordgo.New("Bot " + globalConfig.Token)
-	if err != nil {
-		logs.WriteLogFile("error creating Discord session,", err)
+	if !logs.Check(err) {
 		return
 	}
 
@@ -28,8 +27,7 @@ func StartBot() {
 	dg.AddHandler(purge)
 
 	err = dg.Open()
-	if err != nil {
-		logs.WriteLogFile("error opening connection,", err)
+	if !logs.Check(err) {
 		return
 	}
 
@@ -102,8 +100,7 @@ func foundPreviousMessage(dg *discordgo.Session) bool {
 	notesChunks := splitMessage(notes)
 
 	messages, err := dg.ChannelMessages(globalConfig.ChannelId, 15, "", "", "")
-	if err != nil {
-		logs.WriteLogFile("error fetching channel messages,", err)
+	if !logs.Check(err) {
 		return true
 	}
 

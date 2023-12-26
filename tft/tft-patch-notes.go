@@ -158,7 +158,7 @@ func UpdatePatches() bool {
 	logs.Check(err)
 
 	if len(patchNotes) == 0 {
-		logs.WriteLogFile("Initializing: Setting up patch notes list")
+		logs.WriteLogFile("Initializing: Setting up patch notes list\n")
 		patchNotes = AllPatchInfo[len(AllPatchInfo)-5:] // Fetch 5 latest patch notes
 		logs.WriteLogFile(fmt.Sprintf("Initializing: Added patch notes from version %v to %v\n",
 			patchNotes[0].PatchVersion, patchNotes[len(patchNotes)-1].PatchVersion))
