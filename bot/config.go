@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"discordbot/helpers"
 	"discordbot/logs"
 	"encoding/json"
 	"errors"
@@ -9,10 +10,7 @@ import (
 )
 
 var (
-	globalConfig   Config
-	LogFileName    = "logs.txt"
-	ErrorFileName  = "errors.txt"
-	ConfigFileName = "config.json"
+	globalConfig Config
 )
 
 type Config struct {
@@ -21,12 +19,20 @@ type Config struct {
 	Prefix    string `json:"prefix"`
 }
 
+var (
+	LogFileName    = "logs.txt"
+	ErrorFileName  = "errors.txt"
+	ConfigFileName = "config.json"
+)
+
 func SetConfig() {
-	//// logs.Check if any of the given files exist, creates them if not found
+	//// Check if any of the given files exist, creates them if not found
 	// Logging file
 	_, err := os.Stat(LogFileName)
 	if errors.Is(err, os.ErrNotExist) {
-		createFile(LogFileName)
+		helpers.CreateFile(LogFileName)
+		logs.WriteLogFile(fmt.Sprintf("Created a new logging file %v.\n",
+			LogFileName))
 	} else {
 		logs.CheckDataRetention(30, LogFileName)
 	}
@@ -34,18 +40,25 @@ func SetConfig() {
 	// Error file
 	_, err = os.Stat(ErrorFileName)
 	if errors.Is(err, os.ErrNotExist) {
-		createFile(ErrorFileName)
+		helpers.CreateFile(ErrorFileName)
+		logs.WriteLogFile(fmt.Sprintf("Created a new error logging file '%v'.\n",
+			ErrorFileName))
 	} else {
 		logs.CheckDataRetention(0, ErrorFileName)
 	}
 
-	// Configuration file creation if not found
+	// Configuration file
 	_, err = os.Stat(ConfigFileName)
 	if errors.Is(err, os.ErrNotExist) {
 		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' not found. Creating a new one...\n",
 			ConfigFileName))
-		createFile(ConfigFileName)
+		helpers.CreateFile(ConfigFileName)
+
+		logs.WriteLogFile(fmt.Sprintf("Created a new configuration file '%v'.\n",
+			ConfigFileName))
+
 		PromptAndSetConfig()
+		logs.WriteLogFile("Configuration file filled.\n")
 		return
 	}
 
@@ -68,6 +81,7 @@ func SetConfig() {
 		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is corrupted. Please correct the file or re-enter the config prompts:\n",
 			ConfigFileName))
 		PromptAndSetConfig()
+		logs.WriteLogFile("Configuration file filled.\n")
 		return
 	}
 
@@ -90,39 +104,28 @@ func WriteConfig(config Config) {
 	file.Write(configJSON)
 }
 
-func askInputs() Config {
-	var config Config
-
+func askInputs() {
 	fmt.Print("Enter your bot's Discord API token:\n")
-	_, err := fmt.Scan(&config.Token)
+	_, err := fmt.Scan(&globalConfig.Token)
 	if !logs.Check(err) {
 		os.Exit(1)
 	}
 
 	fmt.Print("\nEnter the channel, where the bot will be sending updates:\n")
-	_, err = fmt.Scan(&config.ChannelId)
+	_, err = fmt.Scan(&globalConfig.ChannelId)
 	if !logs.Check(err) {
 		os.Exit(1)
 	}
 
 	fmt.Print("\nEnter the preferred prefix for commands (e.g. '!' for '!purge 3'):\n")
-	_, err = fmt.Scan(&config.Prefix)
+	_, err = fmt.Scan(&globalConfig.Prefix)
 	if !logs.Check(err) {
 		os.Exit(1)
 	}
 	fmt.Println()
-
-	return config
 }
 
 func PromptAndSetConfig() {
-	config := askInputs()
-	WriteConfig(config)
-	globalConfig = config
-}
-
-func createFile(name string) {
-	file, err := os.Create(name)
-	logs.Check(err)
-	defer file.Close()
+	askInputs()
+	WriteConfig(globalConfig)
 }

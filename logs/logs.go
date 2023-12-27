@@ -16,8 +16,8 @@ func WriteLogFile(a ...any) {
 	log.SetOutput(file)
 
 	for i := range a {
-		log.Print(a[i])
-		fmt.Print(a[i])
+		log.Printf("%v", a[i])
+		fmt.Printf("%v\n", a[i])
 	}
 }
 
@@ -26,10 +26,20 @@ func WriteErrorLogFile(mainErr error) {
 	if !Check(err) {
 		os.Exit(1)
 	}
+
+	log.SetOutput(file)
+	log.Printf("ERROR: %v\n", mainErr)
+	file.Close()
+
+	file, err = os.OpenFile("./logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if !Check(err) {
+		os.Exit(1)
+	}
 	defer file.Close()
 
 	log.SetOutput(file)
 	log.Printf("ERROR: %v", mainErr)
+	fmt.Printf("ERROR: %v\n", mainErr)
 }
 
 func CheckDataRetention(daysToKeep int, fileName string) {
@@ -53,7 +63,6 @@ func CheckDataRetention(daysToKeep int, fileName string) {
 func Check(err error) bool {
 	if err != nil {
 		WriteErrorLogFile(err)
-		WriteLogFile(err)
 		return false
 	}
 	return true

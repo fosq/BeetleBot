@@ -155,12 +155,14 @@ func UpdatePatches() bool {
 	logs.Check(err)
 
 	newPatchNote, err := parsePatchNotes(response)
-	logs.Check(err)
+	if !logs.Check(err) || (newPatchNote == PatchNote{}) {
+		return false
+	}
 
 	if len(patchNotes) == 0 {
-		logs.WriteLogFile("Initializing: Setting up patch notes list\n")
+		logs.WriteLogFile("Initializing: Setting up patch notes list")
 		patchNotes = AllPatchInfo[len(AllPatchInfo)-5:] // Fetch 5 latest patch notes
-		logs.WriteLogFile(fmt.Sprintf("Initializing: Added patch notes from version %v to %v\n",
+		logs.WriteLogFile(fmt.Sprintf("Initializing: Added patch notes from version %v to %v",
 			patchNotes[0].PatchVersion, patchNotes[len(patchNotes)-1].PatchVersion))
 		patchNotes[len(patchNotes)-1].Message = newPatchNote.Message
 		return true
@@ -168,12 +170,12 @@ func UpdatePatches() bool {
 
 	if comparePatchNotes(newPatchNote) {
 		patchNotes = append(patchNotes, newPatchNote)
-		logs.WriteLogFile(fmt.Sprintf("Patches updated to version %v\n",
+		logs.WriteLogFile(fmt.Sprintf("Patches updated to version %v",
 			patchNotes[len(patchNotes)-1].PatchVersion))
 		return true
 	}
 
-	logs.WriteLogFile(fmt.Sprintf("%v - Current patch version: %v\n",
+	logs.WriteLogFile(fmt.Sprintf("%v - Current patch version: %v",
 		time.Now().Format(time.RFC3339), patchNotes[len(patchNotes)-1].PatchVersion))
 	return false
 }
