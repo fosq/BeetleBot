@@ -32,7 +32,7 @@ func StartBot() {
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
-	logs.WriteLogFile("Bot is now running.  Press CTRL-C to exit.\n")
+	logs.WriteLogFile("Bot is now running.  Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
