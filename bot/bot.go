@@ -18,7 +18,7 @@ import (
 func StartBot() {
 	dg, err := discordgo.New("Bot " + globalConfig.Token)
 	if !logs.Check(err) {
-		return
+		logs.Terminate()
 	}
 
 	// Handler for !print, !update
@@ -28,7 +28,7 @@ func StartBot() {
 
 	err = dg.Open()
 	if !logs.Check(err) {
-		return
+		logs.Terminate()
 	}
 
 	// Wait here until CTRL-C or other term signal is received.

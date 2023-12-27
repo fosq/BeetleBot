@@ -64,7 +64,7 @@ func SetConfig() {
 
 	file, err := os.ReadFile(ConfigFileName)
 	if !logs.Check(err) {
-		os.Exit(1)
+		logs.Terminate()
 	}
 
 	// Configuration file creation if file empty
@@ -92,13 +92,13 @@ func SetConfig() {
 func WriteConfig(config Config) {
 	file, err := os.OpenFile(ConfigFileName, os.O_WRONLY, 0644)
 	if !logs.Check(err) {
-		os.Exit(1)
+		logs.Terminate()
 	}
 	defer file.Close()
 
 	configJSON, err := json.MarshalIndent(config, "", "    ")
 	if !logs.Check(err) {
-		os.Exit(1)
+		logs.Terminate()
 	}
 
 	file.Write(configJSON)
@@ -108,19 +108,19 @@ func askInputs() {
 	fmt.Print("Enter your bot's Discord API token:\n")
 	_, err := fmt.Scan(&globalConfig.Token)
 	if !logs.Check(err) {
-		os.Exit(1)
+		logs.Terminate()
 	}
 
 	fmt.Print("\nEnter the channel, where the bot will be sending updates:\n")
 	_, err = fmt.Scan(&globalConfig.ChannelId)
 	if !logs.Check(err) {
-		os.Exit(1)
+		logs.Terminate()
 	}
 
 	fmt.Print("\nEnter the preferred prefix for commands (e.g. '!' for '!purge 3'):\n")
 	_, err = fmt.Scan(&globalConfig.Prefix)
 	if !logs.Check(err) {
-		os.Exit(1)
+		logs.Terminate()
 	}
 	fmt.Println()
 }

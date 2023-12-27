@@ -10,7 +10,7 @@ import (
 func WriteLogFile(a ...any) {
 	file, err := os.OpenFile("./logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if !Check(err) {
-		os.Exit(1)
+		Terminate()
 	}
 	defer file.Close()
 	log.SetOutput(file)
@@ -24,7 +24,7 @@ func WriteLogFile(a ...any) {
 func WriteErrorLogFile(mainErr error) {
 	file, err := os.OpenFile("./errors.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if !Check(err) {
-		os.Exit(1)
+		Terminate()
 	}
 
 	log.SetOutput(file)
@@ -33,7 +33,7 @@ func WriteErrorLogFile(mainErr error) {
 
 	file, err = os.OpenFile("./logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if !Check(err) {
-		os.Exit(1)
+		Terminate()
 	}
 	defer file.Close()
 
@@ -45,7 +45,7 @@ func WriteErrorLogFile(mainErr error) {
 func CheckDataRetention(daysToKeep int, fileName string) {
 	info, err := os.Stat(fileName)
 	if !Check(err) {
-		os.Exit(1)
+		Terminate()
 	}
 
 	modTime := info.ModTime()
@@ -66,4 +66,10 @@ func Check(err error) bool {
 		return false
 	}
 	return true
+}
+
+func Terminate() {
+	fmt.Print("Press 'ENTER' to exit the program.")
+	fmt.Scanln()
+	os.Exit(1)
 }
