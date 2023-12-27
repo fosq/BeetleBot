@@ -31,7 +31,7 @@ func SetConfig() {
 	_, err := os.Stat(LogFileName)
 	if errors.Is(err, os.ErrNotExist) {
 		helpers.CreateFile(LogFileName)
-		logs.WriteLogFile(fmt.Sprintf("Created a new logging file %v.\n",
+		logs.WriteLogFile(fmt.Sprintf("Created a new logging file %v.",
 			LogFileName))
 	} else {
 		logs.CheckDataRetention(30, LogFileName)
@@ -41,7 +41,7 @@ func SetConfig() {
 	_, err = os.Stat(ErrorFileName)
 	if errors.Is(err, os.ErrNotExist) {
 		helpers.CreateFile(ErrorFileName)
-		logs.WriteLogFile(fmt.Sprintf("Created a new error logging file '%v'.\n",
+		logs.WriteLogFile(fmt.Sprintf("Created a new error logging file '%v'.",
 			ErrorFileName))
 	} else {
 		logs.CheckDataRetention(0, ErrorFileName)
@@ -50,11 +50,11 @@ func SetConfig() {
 	// Configuration file
 	_, err = os.Stat(ConfigFileName)
 	if errors.Is(err, os.ErrNotExist) {
-		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' not found. Creating a new one...\n",
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' not found. Creating a new one...",
 			ConfigFileName))
 		helpers.CreateFile(ConfigFileName)
 
-		logs.WriteLogFile(fmt.Sprintf("Created a new configuration file '%v'.\n",
+		logs.WriteLogFile(fmt.Sprintf("Created a new configuration file '%v'.",
 			ConfigFileName))
 
 		PromptAndSetConfig()
@@ -69,7 +69,7 @@ func SetConfig() {
 
 	// Configuration file creation if file empty
 	if len(file) == 0 {
-		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is empty. Creating a new one.\n",
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is empty. Creating a new onen",
 			ConfigFileName))
 		PromptAndSetConfig()
 		return
@@ -78,7 +78,7 @@ func SetConfig() {
 	var config Config
 	err = json.Unmarshal(file, &config)
 	if !logs.Check(err) {
-		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is corrupted. Please correct the file or re-enter the config prompts:\n",
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is corrupted. Please correct the file or re-enter the config prompts:",
 			ConfigFileName))
 		PromptAndSetConfig()
 		logs.WriteLogFile("Configuration file filled.\n")
