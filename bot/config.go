@@ -69,7 +69,7 @@ func SetConfig() {
 
 	// Configuration file creation if file empty
 	if len(file) == 0 {
-		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is empty. Creating a new onen",
+		logs.WriteLogFile(fmt.Sprintf("Configuration file '%v' is empty. Creating a new one...",
 			ConfigFileName))
 		PromptAndSetConfig()
 		return
