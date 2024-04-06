@@ -1,7 +1,6 @@
 package tft
 
 import (
-	"discordbot/logs"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"discordbot/logs"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -104,7 +105,7 @@ func parsePatchNotes(response *http.Response) (PatchNote, error) {
 	matches := r.FindStringSubmatch(jsonData)
 	if len(matches) < 2 {
 		return PatchNote{},
-			fmt.Errorf("could not find any matches for all patch notes from lolchess.gg, re-running in 30 minutes")
+			fmt.Errorf("could not find any matches for all patch notes from lolchess.gg, re-running soon")
 	}
 	extractedJSON := matches[1]
 
@@ -150,34 +151,37 @@ func comparePatchNotes(newPatchNote PatchNote) bool {
 }
 
 // Compares previously saved patch notes from newly fetched ones, returns true if change was found
-func UpdatePatches() bool {
+func UpdatePatches() (bool, error) {
 	response, err := fetchPatchNotes(0)
 	logs.Check(err)
 
 	newPatchNote, err := parsePatchNotes(response)
 	if !logs.Check(err) || (newPatchNote == PatchNote{}) {
-		return false
+		return false, err
 	}
 
 	if len(patchNotes) == 0 {
+		patchNotesCopy := make([]PatchNote, 5)
 		logs.WriteLogFile("Initializing: Setting up patch notes list")
-		patchNotes = AllPatchInfo[len(AllPatchInfo)-5:] // Fetch 5 latest patch notes
+		copy(patchNotesCopy, AllPatchInfo[len(AllPatchInfo)-5:])
+		patchNotes = patchNotesCopy
+
 		logs.WriteLogFile(fmt.Sprintf("Initializing: Added patch notes from version %v to %v",
 			patchNotes[0].PatchVersion, patchNotes[len(patchNotes)-1].PatchVersion))
 		patchNotes[len(patchNotes)-1].Message = newPatchNote.Message
-		return true
+		return true, nil
 	}
 
 	if comparePatchNotes(newPatchNote) {
 		patchNotes = append(patchNotes, newPatchNote)
 		logs.WriteLogFile(fmt.Sprintf("Patches updated to version %v",
 			patchNotes[len(patchNotes)-1].PatchVersion))
-		return true
+		return true, nil
 	}
 
 	logs.WriteLogFile(fmt.Sprintf("%v - Current patch version: %v",
 		time.Now().Format(time.RFC3339), patchNotes[len(patchNotes)-1].PatchVersion))
-	return false
+	return false, nil
 }
 
 // Sorts patchNotes by ID ascendingly

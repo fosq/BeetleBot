@@ -37,24 +37,30 @@ func StartBot() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
 	// Initial check for updates
-	if tft.UpdatePatches() {
-		if found := foundPreviousMessage(dg); !found {
-			sendUpdate(dg)
-		}
-	}
+	checkUpdates(dg, 0)
 
 	ticker := time.NewTicker(30 * time.Minute)
 	go func() {
 		for range ticker.C {
-			if tft.UpdatePatches() {
-				sendUpdate(dg)
-			}
+			checkUpdates(dg, 4)
 		}
 	}()
 	<-sc
 
 	// Cleanly close down the Discord session.
 	dg.Close()
+}
+
+func checkUpdates(dg *discordgo.Session, fnCallCount int) {
+	if updateFound, err := tft.UpdatePatches(); (err == nil) && updateFound {
+		if found := foundPreviousMessage(dg); !found {
+			sendUpdate(dg)
+		}
+	} else if (err != nil) && (fnCallCount < 5) {
+		fmt.Printf("Failed fetching new patches, try number: %v of 5\n", fnCallCount)
+		time.Sleep(1000 * time.Millisecond)
+		checkUpdates(dg, fnCallCount+1)
+	}
 }
 
 func printNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
@@ -87,7 +93,7 @@ func updateNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if m.Content == (globalConfig.Prefix + "update") {
 		logs.WriteLogFile("Received 'UPDATE' command")
-		if tft.UpdatePatches() {
+		if found, _ := tft.UpdatePatches(); found {
 			sendUpdate(dg)
 			return
 		}
@@ -97,19 +103,29 @@ func updateNotes(dg *discordgo.Session, m *discordgo.MessageCreate) {
 
 func foundPreviousMessage(dg *discordgo.Session) bool {
 	notes := tft.GetPatchNotes()
-	notesChunks := splitMessage(notes)
 
 	messages, err := dg.ChannelMessages(globalConfig.ChannelId, 15, "", "", "")
 	if !logs.Check(err) {
 		return true
 	}
 
-	for i, message := range messages {
-		if message.Content == notesChunks[len(notesChunks)-1] && i <= len(notesChunks) {
-			logs.WriteLogFile("Found equal patch notes in previously sent message")
-			return true
+	if len(notes) < 2000 {
+		for _, message := range messages {
+			if message.Content == notes {
+				logs.WriteLogFile("Found equal patch notes in previously sent message")
+				return true
+			}
+		}
+	} else {
+		notesChunks := splitMessage(notes)
+		for i, message := range messages {
+			if message.Content == notesChunks[len(notesChunks)-1] && i <= len(notesChunks) {
+				logs.WriteLogFile("Found equal patch notes in previously sent message")
+				return true
+			}
 		}
 	}
+
 	return false
 }
 
